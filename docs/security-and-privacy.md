@@ -8,6 +8,8 @@ configuration, contracts, risk analysis, operations, people, and evidence in add
 
 - Synthetic-only committed data and de-identified aggregate output
 - KMS encryption with rotation for workflow data and RDS
+- Customer-managed KMS encryption for workflow, frontend, audit, CloudTrail, and SNS data
+- AWS WAF managed common rules in front of the CloudFront distribution
 - S3 Block Public Access, Bucket Owner Enforced, TLS-only bucket policy, and Versioning
 - Private Fargate and database subnets with security-group-to-security-group rules
 - OIDC token verification and role checks on protected API actions
@@ -23,7 +25,8 @@ configuration, contracts, risk analysis, operations, people, and evidence in add
 - Use an eligible account and services under the required agreements.
 - Replace synthetic validation rules with reviewed business rules and test fixtures.
 - Register the enterprise IdP, constrain token claims, and test revocation and role changes.
-- Add WAF/rate limits, organization log archive, GuardDuty/Security Hub controls as appropriate.
+- Add application rate limits, organization log archive, and GuardDuty/Security Hub controls as
+  appropriate.
 - Decide retention, legal hold, deletion, key administration, break-glass access, and evidence handling.
 - Add malware/content scanning and enforce upload size limits before processing untrusted files.
 - Keep identifiers out of metrics, traces, exception messages, SNS messages, and support tickets.

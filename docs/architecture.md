@@ -1,5 +1,7 @@
 # Architecture and design decisions
 
+![AWS public-health reporting architecture](architecture-diagram.png)
+
 ## Two paths, one validation contract
 
 The zero-cloud path copies a CSV into filesystem prefixes, runs `validation.py`, writes either a

@@ -1,0 +1,20 @@
+repos:
+  - repo: local
+    hooks:
+      - id: python-tests
+        name: Python workflow tests
+        entry: python scripts/run_backend_tests.py
+        language: system
+        pass_filenames: false
+
+      - id: terraform-format
+        name: Terraform format
+        entry: terraform fmt -check -recursive terraform
+        language: system
+        pass_filenames: false
+
+      - id: repository-structure
+        name: Repository structure contract
+        entry: python -m unittest discover -s tests -v
+        language: system
+        pass_filenames: false

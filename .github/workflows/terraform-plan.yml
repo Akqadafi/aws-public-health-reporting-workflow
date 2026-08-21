@@ -1,0 +1,67 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    paths:
+      - "terraform/**"
+      - "application/backend/src/**"
+      - ".github/workflows/terraform-plan.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  validate:
+    name: Validate (${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, prod]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.15.9"
+      - name: Check formatting
+        run: terraform fmt -check -recursive terraform
+      - name: Initialize without remote state
+        run: terraform init -backend=false -input=false
+        working-directory: terraform/environments/${{ matrix.environment }}
+      - name: Validate configuration
+        run: terraform validate
+        working-directory: terraform/environments/${{ matrix.environment }}
+
+  security-scan:
+    name: Terraform security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: config
+          scan-ref: terraform
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          hide-progress: true
+
+  plan:
+    name: Plan dev
+    if: ${{ vars.AWS_ROLE_ARN != '' }}
+    needs: [validate, security-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.15.9"
+      - uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+      - run: terraform init -backend=false -input=false
+        working-directory: terraform/environments/dev
+      - run: terraform plan -input=false -lock=false -var-file=terraform.tfvars.example
+        working-directory: terraform/environments/dev

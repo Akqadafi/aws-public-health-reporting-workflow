@@ -1,0 +1,5 @@
+bucket         = "replace-with-terraform-state-bucket"
+key            = "health-reporting/dev/terraform.tfstate"
+region         = "us-west-2"
+encrypt        = true
+use_lockfile   = true
