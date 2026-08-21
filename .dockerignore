@@ -1,0 +1,10 @@
+.git
+.github
+.terraform
+frontend
+infra
+local-data
+sample-data
+tests
+__pycache__
+*.pyc

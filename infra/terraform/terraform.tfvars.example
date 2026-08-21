@@ -1,0 +1,15 @@
+aws_region       = "us-west-2"
+project_name     = "health-reporting-demo"
+environment      = "portfolio"
+enable_frontend  = true
+enable_full_stack = false
+protect_data     = true
+
+# Optional notification; AWS sends a confirmation email before alerts start.
+notification_email = ""
+
+# Required only after explicitly enabling the cost-bearing full stack.
+api_image_uri       = ""
+alb_certificate_arn = ""
+oidc_issuer         = ""
+oidc_audience       = ""

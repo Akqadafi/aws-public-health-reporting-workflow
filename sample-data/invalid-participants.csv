@@ -1,0 +1,5 @@
+participant_id,program_code,service_date,outcome_achieved,age_group
+SYN-0101,PREVENTION,2026-04-03,Yes,18-24
+,TREATMENT,2026-04-19,No,25-44
+SYN-0101,UNKNOWN,2026-05-07,Maybe,45-64
+SYN-0104,OUTREACH,2025-12-01,Yes,unknown
