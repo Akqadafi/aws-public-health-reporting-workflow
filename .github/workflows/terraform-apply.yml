@@ -1,0 +1,56 @@
+name: Terraform Apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        required: true
+        default: dev
+        type: choice
+        options: [dev, prod]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_VAR_enable_full_stack: ${{ vars.ENABLE_FULL_STACK || 'false' }}
+      TF_VAR_api_image_uri: ${{ vars.API_IMAGE_URI || '' }}
+      TF_VAR_alb_certificate_arn: ${{ vars.ALB_CERTIFICATE_ARN || '' }}
+      TF_VAR_oidc_issuer: ${{ vars.OIDC_ISSUER || '' }}
+      TF_VAR_oidc_audience: ${{ vars.OIDC_AUDIENCE || '' }}
+      TF_VAR_notification_email: ${{ vars.NOTIFICATION_EMAIL || '' }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.15.9"
+      - uses: aws-actions/configure-aws-credentials@v6.2.3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: us-west-2
+      - name: Initialize remote state
+        run: >-
+          terraform init -input=false
+          -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+          -backend-config="key=health-reporting/${{ inputs.environment }}/terraform.tfstate"
+          -backend-config="region=us-west-2"
+          -backend-config="encrypt=true"
+          -backend-config="use_lockfile=true"
+        working-directory: terraform/environments/${{ inputs.environment }}
+      - name: Plan reviewed deployment
+        run: terraform plan -input=false -out=release.tfplan
+        working-directory: terraform/environments/${{ inputs.environment }}
+      - name: Apply reviewed plan
+        run: terraform apply -input=false -auto-approve release.tfplan
+        working-directory: terraform/environments/${{ inputs.environment }}

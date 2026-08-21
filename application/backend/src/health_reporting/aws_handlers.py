@@ -48,7 +48,9 @@ def _reporting_period(client, bucket: str, cycle_id: str) -> tuple[date, date]:
         start = os.environ.get("DEFAULT_PERIOD_START")
         end = os.environ.get("DEFAULT_PERIOD_END")
         if not start or not end:
-            raise ValueError(f"No reporting-period configuration found for cycle '{cycle_id}'")
+            raise ValueError(
+                f"No reporting-period configuration found for cycle '{cycle_id}'"
+            ) from None
         return date.fromisoformat(start), date.fromisoformat(end)
 
 

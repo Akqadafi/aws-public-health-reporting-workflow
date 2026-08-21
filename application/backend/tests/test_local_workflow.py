@@ -12,7 +12,7 @@ from health_reporting.workflow_store import WorkflowStore
 
 class LocalWorkflowTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.samples = Path(__file__).parents[1] / "sample-data"
+        self.samples = Path(__file__).parents[3] / "sample-data"
 
     def test_valid_file_reaches_archive_with_deidentified_report(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -1,0 +1,57 @@
+name: Application CI
+
+on:
+  pull_request:
+    paths:
+      - "application/**"
+      - "sample-data/**"
+      - "tests/**"
+      - ".github/workflows/application-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "application/**"
+      - "sample-data/**"
+      - "tests/**"
+      - ".github/workflows/application-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: application/backend/pyproject.toml
+      - name: Install backend and development tools
+        run: python -m pip install -e "application/backend[dev]"
+      - name: Lint
+        run: ruff check application/backend/src application/backend/tests tests
+      - name: Backend and workflow tests
+        env:
+          PYTHONPATH: application/backend/src
+        run: python -m unittest discover -s application/backend/tests -v
+      - name: Repository structure contract
+        run: python -m unittest discover -s tests -v
+      - name: Build API image
+        run: docker build -t health-reporting-api:ci application/backend
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: application/frontend/package-lock.json
+      - run: npm ci
+        working-directory: application/frontend
+      - run: npm run build
+        working-directory: application/frontend

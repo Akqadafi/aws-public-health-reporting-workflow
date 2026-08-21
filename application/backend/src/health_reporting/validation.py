@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import csv
 import io
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Iterable
 
 REQUIRED_COLUMNS = (
     "participant_id",
@@ -94,7 +94,12 @@ def validate_rows(
     for column in REQUIRED_COLUMNS:
         if column not in provided_columns:
             result.issues.append(
-                ValidationIssue(None, column, "missing_column", f"Required column '{column}' is missing.")
+                ValidationIssue(
+                    None,
+                    column,
+                    "missing_column",
+                    f"Required column '{column}' is missing.",
+                )
             )
     if result.issues:
         return result

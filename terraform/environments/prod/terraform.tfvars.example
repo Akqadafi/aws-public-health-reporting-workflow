@@ -1,0 +1,12 @@
+aws_region        = "us-west-2"
+project_name      = "health-reporting-demo"
+enable_frontend   = true
+enable_full_stack = true
+protect_data      = true
+
+# Required for the full production-style control plane.
+api_image_uri       = "123456789012.dkr.ecr.us-west-2.amazonaws.com/health-reporting-api:replace-with-immutable-tag"
+alb_certificate_arn = "arn:aws:acm:us-west-2:123456789012:certificate/replace-me"
+oidc_issuer         = "https://replace-with-enterprise-idp.example.com"
+oidc_audience       = "health-reporting"
+notification_email  = "replace-with-operations@example.com"

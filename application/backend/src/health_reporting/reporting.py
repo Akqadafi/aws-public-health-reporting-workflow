@@ -5,7 +5,7 @@ from __future__ import annotations
 import csv
 import io
 from collections import defaultdict
-from typing import Iterable
+from collections.abc import Iterable
 
 
 def aggregate_rows(rows: Iterable[dict[str, str]]) -> list[dict[str, str | int]]:

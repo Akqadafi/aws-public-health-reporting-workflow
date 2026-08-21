@@ -126,7 +126,8 @@ def create_upload(
     actor: Annotated[Actor, Depends(require_any("analyst", "manager"))],
 ) -> dict[str, str | int]:
     file_name = PurePath(request.filename).name
-    if file_name != request.filename or PurePath(file_name).suffix.lower() not in ALLOWED_EXTENSIONS:
+    is_supported_extension = PurePath(file_name).suffix.lower() in ALLOWED_EXTENSIONS
+    if file_name != request.filename or not is_supported_extension:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Only plain CSV filenames are accepted")
     object_key = f"incoming/{request.cycle_id}/{request.dataset}/{uuid4()}-{file_name}"
     expires_in = int(os.environ.get("UPLOAD_URL_TTL_SECONDS", "900"))

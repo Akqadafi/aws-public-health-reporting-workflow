@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import sqlite3
 from contextlib import closing
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 
@@ -25,9 +25,8 @@ class WorkflowStore:
         return connection
 
     def _initialize(self) -> None:
-        with closing(self._connect()) as connection:
-            with connection:
-                connection.executescript(
+        with closing(self._connect()) as connection, connection:
+            connection.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS reporting_cycles (
                     cycle_id TEXT PRIMARY KEY,
@@ -51,14 +50,15 @@ class WorkflowStore:
 
     @staticmethod
     def _now() -> str:
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()
 
     def configure_cycle(self, cycle_id: str, period_start: date, period_end: date) -> None:
-        with closing(self._connect()) as connection:
-            with connection:
-                connection.execute(
+        with closing(self._connect()) as connection, connection:
+            connection.execute(
                 """
-                INSERT INTO reporting_cycles (cycle_id, period_start, period_end, status, updated_at)
+                INSERT INTO reporting_cycles (
+                    cycle_id, period_start, period_end, status, updated_at
+                )
                 VALUES (?, ?, ?, 'ACCEPTING_FILES', ?)
                 ON CONFLICT(cycle_id) DO UPDATE SET
                   period_start = excluded.period_start,
@@ -69,12 +69,12 @@ class WorkflowStore:
             )
 
     def start_submission(self, run_id: str, cycle_id: str, source_path: str) -> None:
-        with closing(self._connect()) as connection:
-            with connection:
-                connection.execute(
+        with closing(self._connect()) as connection, connection:
+            connection.execute(
                 """
-                INSERT INTO file_submissions
-                  (run_id, cycle_id, source_path, status, updated_at)
+                INSERT INTO file_submissions (
+                    run_id, cycle_id, source_path, status, updated_at
+                )
                 VALUES (?, ?, ?, 'VALIDATING', ?)
                 """,
                 (run_id, cycle_id, source_path, self._now()),
@@ -88,24 +88,33 @@ class WorkflowStore:
         validation_report: str,
         curated_file: str | None = None,
     ) -> None:
-        with closing(self._connect()) as connection:
-            with connection:
-                connection.execute(
+        with closing(self._connect()) as connection, connection:
+            connection.execute(
                 """
                 UPDATE file_submissions
-                SET status = ?, error_count = ?, validation_report = ?, curated_file = ?, updated_at = ?
+                SET
+                    status = ?,
+                    error_count = ?,
+                    validation_report = ?,
+                    curated_file = ?,
+                    updated_at = ?
                 WHERE run_id = ?
                 """,
                 (status, error_count, validation_report, curated_file, self._now(), run_id),
             )
-                cycle_status = (
-                    "VALIDATION_BLOCKED" if status == "QUARANTINED" else "READY_FOR_APPROVAL"
+            cycle_status = (
+                "VALIDATION_BLOCKED" if status == "QUARANTINED" else "READY_FOR_APPROVAL"
+            )
+            connection.execute(
+                """
+                UPDATE reporting_cycles
+                SET status = ?, updated_at = ?
+                WHERE cycle_id = (
+                    SELECT cycle_id FROM file_submissions WHERE run_id = ?
                 )
-                connection.execute(
-                    "UPDATE reporting_cycles SET status = ?, updated_at = ? WHERE cycle_id = "
-                    "(SELECT cycle_id FROM file_submissions WHERE run_id = ?)",
-                    (cycle_status, self._now(), run_id),
-                )
+                """,
+                (cycle_status, self._now(), run_id),
+            )
 
     def submission(self, run_id: str) -> dict[str, str | int | None]:
         with closing(self._connect()) as connection:

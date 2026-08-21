@@ -6,7 +6,7 @@ import csv
 import json
 import shutil
 from dataclasses import asdict, dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -93,7 +93,7 @@ def run_local_workflow(
     manifest_payload = {
         "run_id": run_id,
         "cycle_id": cycle_id,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "source_file": str(incoming),
         "validated_file": str(validated),
         "final_report": str(archived_report),

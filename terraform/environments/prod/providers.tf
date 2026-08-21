@@ -1,0 +1,13 @@
+provider "aws" {
+  region = var.aws_region
+
+  default_tags {
+    tags = {
+      Project        = var.project_name
+      Environment    = "prod"
+      ManagedBy      = "Terraform"
+      DataClass      = "SyntheticDemo"
+      PortfolioClone = "true"
+    }
+  }
+}
