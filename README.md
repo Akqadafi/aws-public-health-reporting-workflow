@@ -1,6 +1,6 @@
 # AWS Public Health Reporting Workflow
 
-> **A portfolio-safe AWS workflow that replaces manual public-health file
+> A portfolio-safe AWS workflow that replaces manual public-health file
 > handling with secure direct uploads, deterministic validation, human review, de-identified
 > reporting, and traceable operations.
 
