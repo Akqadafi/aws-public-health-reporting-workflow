@@ -73,6 +73,7 @@ the data path. See [Architecture and design decisions](docs/architecture.md) and
 | VPC and security groups | Private Fargate/database tiers and explicit network paths |
 | S3 | Incoming, quarantine, validated, curated, archive, frontend, and audit objects |
 | CloudFront | HTTPS delivery from a private frontend bucket using Origin Access Control |
+| AWS WAF | AWS-managed common protections for the CloudFront frontend |
 | Application Load Balancer | HTTPS entry point for the API control plane |
 | ECS Fargate | Containerized FastAPI service without host management |
 | EventBridge | Starts processing when an object arrives under `incoming/` |
@@ -166,6 +167,7 @@ as GitHub Environments and add required reviewers before enabling deployment.
 - Short-lived presigned URLs scoped to a generated S3 key
 - S3 Block Public Access, TLS-only bucket policies, Versioning, and KMS encryption
 - CloudFront Origin Access Control for the private frontend origin
+- AWS WAF managed common rules on the CloudFront distribution
 - Fargate tasks in private application subnets and RDS in isolated database subnets
 - Database ingress permitted only from the API security group
 - Generated database credentials stored in Secrets Manager
@@ -354,7 +356,7 @@ snapshots, and object versions before changing those safeguards.
 
 - Implement PostgreSQL migrations and connect the API repository adapter to the included schema
 - Complete enterprise OIDC login in the React portal and manager approval screens
-- Add malware/content scanning, upload-size enforcement, WAF, and application rate limits
+- Add malware/content scanning, upload-size enforcement, and application rate limits
 - Evaluate deadlines and unresolved errors as custom operational metrics
 - Add integration tests using an isolated AWS account and synthetic fixtures
 - Add policy-as-code, automated cost estimation, and drift detection to pull requests

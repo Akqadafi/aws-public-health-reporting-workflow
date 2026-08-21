@@ -1,6 +1,11 @@
 module "reporting_platform" {
   source = "../../modules/reporting-platform"
 
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+
   aws_region          = var.aws_region
   project_name        = var.project_name
   environment         = "dev"

@@ -23,7 +23,11 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
   count  = var.enable_frontend ? 1 : 0
   bucket = aws_s3_bucket.frontend[0].id
   rule {
-    apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.data.arn
+      sse_algorithm     = "aws:kms"
+    }
+    bucket_key_enabled = true
   }
 }
 
@@ -36,12 +40,52 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
   signing_protocol                  = "sigv4"
 }
 
+resource "aws_wafv2_web_acl" "frontend" {
+  provider = aws.us_east_1
+  count    = var.enable_frontend ? 1 : 0
+  name     = "${local.name_prefix}-frontend"
+  scope    = "CLOUDFRONT"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "aws-common-rules"
+    priority = 10
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${local.name_prefix}-common-rules"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${local.name_prefix}-frontend"
+    sampled_requests_enabled   = true
+  }
+}
+
 resource "aws_cloudfront_distribution" "frontend" {
   count               = var.enable_frontend ? 1 : 0
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
   price_class         = "PriceClass_100"
+  web_acl_id          = aws_wafv2_web_acl.frontend[0].arn
 
   origin {
     domain_name              = aws_s3_bucket.frontend[0].bucket_regional_domain_name

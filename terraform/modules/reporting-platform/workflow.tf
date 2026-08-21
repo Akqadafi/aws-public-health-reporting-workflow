@@ -91,7 +91,7 @@ resource "aws_lambda_function" "transform" {
 
 resource "aws_sns_topic" "operations" {
   name              = "${local.name_prefix}-operations"
-  kms_master_key_id = "alias/aws/sns"
+  kms_master_key_id = aws_kms_key.data.arn
 }
 
 resource "aws_sns_topic_subscription" "email" {
@@ -133,6 +133,11 @@ resource "aws_iam_role_policy" "step_functions" {
         Effect   = "Allow"
         Action   = "sns:Publish"
         Resource = aws_sns_topic.operations.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt", "kms:GenerateDataKey*"]
+        Resource = aws_kms_key.data.arn
       },
       {
         Effect = "Allow"

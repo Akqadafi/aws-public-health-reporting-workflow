@@ -23,7 +23,11 @@ resource "aws_s3_bucket_versioning" "audit" {
 resource "aws_s3_bucket_server_side_encryption_configuration" "audit" {
   bucket = aws_s3_bucket.audit.id
   rule {
-    apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.data.arn
+      sse_algorithm     = "aws:kms"
+    }
+    bucket_key_enabled = true
   }
 }
 
@@ -79,6 +83,7 @@ resource "aws_s3_bucket_policy" "audit" {
 resource "aws_cloudtrail" "audit" {
   name                          = local.name_prefix
   s3_bucket_name                = aws_s3_bucket.audit.id
+  kms_key_id                    = aws_kms_key.data.arn
   include_global_service_events = true
   is_multi_region_trail         = true
   enable_log_file_validation    = true

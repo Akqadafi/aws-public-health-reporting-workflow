@@ -9,7 +9,7 @@ root modules call it with environment-specific values and remote-state configura
 |---|---|
 | `storage.tf` | KMS-encrypted, versioned workflow bucket and event notifications |
 | `workflow.tf` | Lambda packaging, Step Functions, EventBridge, SNS, and IAM |
-| `frontend.tf` | Private frontend bucket and CloudFront Origin Access Control |
+| `frontend.tf` | KMS-encrypted frontend origin, CloudFront OAC, and AWS WAF managed rules |
 | `audit_monitoring.tf` | CloudTrail, audit-log bucket, CloudWatch alarms |
 | `full_stack.tf` | Opt-in VPC, ALB, ECS Fargate, Secrets Manager, and PostgreSQL RDS |
 
