@@ -196,8 +196,8 @@ repository does not present them as already implemented.
 
 New to Git, Python, Terraform, or command-line tools? Start with the
 [complete beginner run guide](docs/beginner-local-guide.md). It explains how to download the
-repository, run both samples locally, deploy the default dev environment, verify the real AWS workflow
-from the CLI, and tear it down safely.
+repository, run the original samples and all five synthetic staff-report profiles locally, deploy the
+default dev environment, verify the real AWS workflow from the CLI, and tear it down safely.
 
 ### Prerequisites
 

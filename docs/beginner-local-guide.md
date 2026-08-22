@@ -13,10 +13,14 @@ documentation. You will:
 1. Copy the repository from GitHub onto your computer.
 2. Open a terminal inside the copied folder.
 3. Tell Python where the project code lives.
-4. Run a good sample file.
-5. Run a bad sample file.
-6. Inspect the folders created by the workflow.
-7. Run the automated tests.
+4. Run the original good and bad participant samples.
+5. Inspect the folders created by the original workflow.
+6. Run five different kinds of invented staff reports.
+7. Inspect cleaned, de-identified, and quarantined results.
+8. Run the automated tests.
+9. Optionally create the AWS environment with Terraform.
+10. Use AWS CLI commands to prove the cloud workflow works.
+11. Destroy the practice environment when you are finished.
 
 The local demonstration is free. It does not contact AWS, create cloud resources, or contain real
 participant information.
@@ -229,7 +233,7 @@ Do not place real health or participant data in this demonstration.
 
 Tests are small automatic checks that ask, “Does the code still behave the way we expect?”
 
-Run the seven backend workflow tests:
+Run the twelve backend workflow tests:
 
 ```text
 python scripts/run_backend_tests.py
@@ -249,6 +253,131 @@ python -m unittest discover -s tests -v
 
 Successful output ends with `OK`. Seeing several lines containing `... ok` is also a good sign.
 
+## Step 9: run all five synthetic staff-report examples
+
+The first demonstration used one small participant-outcomes table. The repository also includes five
+different kinds of invented staff reports so you can see how the cleaner handles files that arrive in
+different shapes. These examples are made-up portfolio data. They do not copy any real person,
+organization, location, story, or result.
+
+| Dataset key you type | What the invented report represents |
+|---|---|
+| `health-education-demographics` | Participant demographics and health-education interests |
+| `case-management-activity` | Monthly visits, participants, screenings, and referrals |
+| `behavioral-health-activity` | Monthly referrals, appointments, groups, and telehealth activity |
+| `outreach-activity` | Monthly events, referrals, enrollments, partners, and contacts |
+| `father-engagement-activity` | Monthly visits, referrals, enrollment, and education activity |
+
+Each type has two files in `sample-data/synthetic-staff-reports`:
+
+- a `-valid.csv` file that should pass; and
+- an `-invalid.csv` file that should be safely rejected.
+
+The dataset key and the filename must match. The program makes you name the dataset because guessing
+a schema from a filename or a few columns could silently process a report incorrectly.
+
+### Run every valid staff report
+
+Make sure you are still in the repository root and that you completed Step 4. Windows PowerShell
+users can copy and run these commands one at a time:
+
+```powershell
+python -m health_reporting.portfolio_cli health-education-demographics sample-data/synthetic-staff-reports/health-education-demographics-valid.csv
+python -m health_reporting.portfolio_cli case-management-activity sample-data/synthetic-staff-reports/case-management-activity-valid.csv
+python -m health_reporting.portfolio_cli behavioral-health-activity sample-data/synthetic-staff-reports/behavioral-health-activity-valid.csv
+python -m health_reporting.portfolio_cli outreach-activity sample-data/synthetic-staff-reports/outreach-activity-valid.csv
+python -m health_reporting.portfolio_cli father-engagement-activity sample-data/synthetic-staff-reports/father-engagement-activity-valid.csv
+```
+
+On macOS or Linux, use the same commands with `python3`:
+
+```bash
+python3 -m health_reporting.portfolio_cli health-education-demographics sample-data/synthetic-staff-reports/health-education-demographics-valid.csv
+python3 -m health_reporting.portfolio_cli case-management-activity sample-data/synthetic-staff-reports/case-management-activity-valid.csv
+python3 -m health_reporting.portfolio_cli behavioral-health-activity sample-data/synthetic-staff-reports/behavioral-health-activity-valid.csv
+python3 -m health_reporting.portfolio_cli outreach-activity sample-data/synthetic-staff-reports/outreach-activity-valid.csv
+python3 -m health_reporting.portfolio_cli father-engagement-activity sample-data/synthetic-staff-reports/father-engagement-activity-valid.csv
+```
+
+Each command prints JSON. Every valid example should include:
+
+```json
+"status": "TRANSFORMED"
+```
+
+The program creates one folder per dataset under `portfolio-output`. Open the main folder in Windows:
+
+```powershell
+explorer .\portfolio-output
+```
+
+Or list every output in the terminal:
+
+```powershell
+Get-ChildItem -Recurse .\portfolio-output
+```
+
+On macOS use `open portfolio-output`; on most Linux desktops use `xdg-open portfolio-output`. Each
+successful dataset folder contains three useful files:
+
+- `*.validation.json` says whether the file passed, lists safe corrections, and records any issues;
+- `*.cleaned.csv` contains standardized internal rows; and
+- `*.transformed.csv` contains the smaller reporting output.
+
+The transformed files leave out direct participant and submission identifiers, full ZIP codes, exact
+dates, and staff narratives. De-identification in this demonstration is useful, but it is not a
+replacement for your organization's privacy review, access rules, retention rules, or small-number
+suppression policy.
+
+### Run every invalid staff report
+
+Now run the matching bad examples. They intentionally contain problems such as negative counts,
+letters where a number belongs, repeated submission IDs, impossible months, or unsupported choices.
+
+Windows PowerShell:
+
+```powershell
+python -m health_reporting.portfolio_cli health-education-demographics sample-data/synthetic-staff-reports/health-education-demographics-invalid.csv
+python -m health_reporting.portfolio_cli case-management-activity sample-data/synthetic-staff-reports/case-management-activity-invalid.csv
+python -m health_reporting.portfolio_cli behavioral-health-activity sample-data/synthetic-staff-reports/behavioral-health-activity-invalid.csv
+python -m health_reporting.portfolio_cli outreach-activity sample-data/synthetic-staff-reports/outreach-activity-invalid.csv
+python -m health_reporting.portfolio_cli father-engagement-activity sample-data/synthetic-staff-reports/father-engagement-activity-invalid.csv
+```
+
+macOS or Linux:
+
+```bash
+python3 -m health_reporting.portfolio_cli health-education-demographics sample-data/synthetic-staff-reports/health-education-demographics-invalid.csv
+python3 -m health_reporting.portfolio_cli case-management-activity sample-data/synthetic-staff-reports/case-management-activity-invalid.csv
+python3 -m health_reporting.portfolio_cli behavioral-health-activity sample-data/synthetic-staff-reports/behavioral-health-activity-invalid.csv
+python3 -m health_reporting.portfolio_cli outreach-activity sample-data/synthetic-staff-reports/outreach-activity-invalid.csv
+python3 -m health_reporting.portfolio_cli father-engagement-activity sample-data/synthetic-staff-reports/father-engagement-activity-invalid.csv
+```
+
+Every bad example should say:
+
+```json
+"status": "QUARANTINED"
+```
+
+That result is a success: it proves the program found unsafe input and refused to create cleaned or
+transformed output. Read the matching `.validation.json` file to see the exact row, column, error
+code, and explanation.
+
+The cleaner only makes safe, predictable corrections. For example, it can remove extra spaces,
+standardize a month, capitalize a known code, or convert a whole-number string to a number. It will
+not invent a missing ID, guess an unknown category, change a negative count, repair an impossible
+date, or guess what a person meant.
+
+To keep another set of outputs separate, add an output folder to any command:
+
+```powershell
+python -m health_reporting.portfolio_cli outreach-activity sample-data/synthetic-staff-reports/outreach-activity-valid.csv --output-dir practice-portfolio-output
+```
+
+For the exact columns and cleaning rules for each report, see the
+[synthetic ingestion guide](synthetic-ingestion.md).
+
 ## Optional: use a separate practice folder for output
 
 You do not have to erase old results. Give a run a different output folder instead:
@@ -261,8 +390,8 @@ The workflow will create `practice-data` and leave `local-data` alone.
 
 ## Optional: try your own invented CSV
 
-Copy `sample-data/valid-participants.csv`, give the copy a new name, and edit only invented values.
-Keep these column headings:
+For the original participant-outcomes workflow, copy `sample-data/valid-participants.csv`, give the
+copy a new name, and edit only invented values. Keep these column headings:
 
 ```text
 participant_id,program_code,service_date,outcome_achieved,age_group
@@ -281,6 +410,15 @@ python -m health_reporting.cli path/to/your-invented-file.csv --cycle 2026-Q3 --
 ```
 
 Dates use `YYYY-MM-DD`: year, month, then day.
+
+For one of the five staff-report workflows, copy the matching `-valid.csv` example from
+`sample-data/synthetic-staff-reports`, keep its exact headings, and change only invented values. Then
+run it with `health_reporting.portfolio_cli`, using the matching dataset key from Step 9.
+
+This demonstration reads CSV files. If your invented practice data starts in Excel or Google Sheets,
+export or download a copy as **Comma-separated values (.csv)** first. Do not merely rename `.xlsx` to
+`.csv`; those are different file formats. Never put real work documents, names, email addresses,
+phone numbers, birth dates, medical details, or identifying stories in this public repository.
 
 ## Optional: preview the React portal
 
@@ -363,6 +501,22 @@ Check your current folder. You must run the commands from the folder containing 
 ### The bad sample says `QUARANTINED`
 
 That is correct. The bad file exists to prove the workflow refuses unsafe data.
+
+### `invalid choice` appears after `portfolio_cli`
+
+The dataset key was typed incorrectly. Copy one of the five keys from the table in Step 9. Do not use
+the filename as the key, and do not include `.csv` in the key.
+
+### A staff-report file is quarantined even though you expected it to pass
+
+First check that the dataset key matches the file. For example, use `outreach-activity` with
+`outreach-activity-valid.csv`. Then open the generated `.validation.json` file under
+`portfolio-output/<dataset-key>/`; its `issues` list explains the exact problem.
+
+### I cannot find the cleaned or transformed staff-report files
+
+They are written under `portfolio-output/<dataset-key>/`, not under `local-data`. A quarantined file
+only gets a validation report because the program deliberately refuses to transform unsafe rows.
 
 ### The run IDs or filenames do not match this guide
 
@@ -693,11 +847,36 @@ plane directly with the AWS CLI.
 
 ### AWS Step 11: run a real end-to-end AWS smoke test
 
+#### Use the AWS-compatible sample
+
+The deployed validation and transformation Lambdas currently implement the original
+participant-outcomes contract with these columns:
+
+```text
+participant_id,program_code,service_date,outcome_achieved,age_group
+```
+
+Therefore, use `sample-data/valid-participants.csv` and `sample-data/invalid-participants.csv` for
+this AWS test. The five report types under `sample-data/synthetic-staff-reports` are fully runnable
+with the local `portfolio_cli` commands in Step 9, but they are not connected to the deployed Lambda
+yet. Uploading one of those files to the AWS `incoming/` prefix would not prove its profile works; the
+current Lambda would reject it because its columns do not match the participant-outcomes contract.
+
+Connecting the five-profile dispatcher to Lambda and Step Functions would be a future extension. This
+guide keeps the test honest by using only the data contract the Terraform deployment actually runs.
+
+#### Upload the reporting-period configuration
+
 First upload the reporting-period configuration. This does not start the workflow:
 
 ```powershell
 aws s3 cp .\sample-data\cycle-2026-Q2.json "s3://$DataBucket/configuration/cycles/2026-Q2.json" --content-type application/json
 ```
+
+This JSON file tells the workflow which reporting dates belong to `2026-Q2`. It is configuration,
+not a participant record.
+
+#### Upload a valid CSV and wait for the workflow
 
 Remember the most recent execution, if there is one:
 
