@@ -111,7 +111,7 @@
   <text x="982" y="590" text-anchor="middle" class="node-copy">Normalized records</text>
   <text x="982" y="612" text-anchor="middle" class="small">Validation report</text>
   <path d="M810 512V577H877" class="line"/>
-  <text x="844" y="563" text-anchor="middle" class="arrow-label" fill="#2b7958">PASS</text>
+  <text x="861" y="563" text-anchor="middle" class="arrow-label" fill="#2b7958">PASS</text>
 
   <rect x="1120" y="530" width="170" height="95" class="pass"/>
   <text x="1205" y="564" text-anchor="middle" class="node-title">Transform</text>
