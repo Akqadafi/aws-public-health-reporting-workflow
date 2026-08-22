@@ -107,6 +107,7 @@ aws-public-health-reporting-workflow/
 │   ├── architecture-diagram.png
 │   ├── architecture-diagram.svg
 │   ├── beginner-local-guide.md
+│   ├── synthetic-ingestion.md
 │   ├── security-and-privacy.md
 │   ├── runbook.md
 │   └── runbooks/
@@ -384,6 +385,7 @@ snapshots, and object versions before changing those safeguards.
 - [Architecture](docs/architecture.md)
 - [Architecture diagram](docs/architecture-diagram.png)
 - [Complete beginner local and Terraform run guide](docs/beginner-local-guide.md)
+- [Synthetic multi-program ingestion examples](docs/synthetic-ingestion.md)
 - [Security and privacy](docs/security-and-privacy.md)
 - [Runbook index](docs/runbook.md)
 - [Portfolio walkthrough](docs/portfolio-walkthrough.md)
