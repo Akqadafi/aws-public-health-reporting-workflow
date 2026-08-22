@@ -38,7 +38,7 @@
   <rect width="1600" height="900" fill="#f4f7f5"/>
   <rect width="1600" height="118" fill="url(#header)"/>
   <text x="60" y="55" class="title">Public Health Reporting Workflow</text>
-  <text x="60" y="88" class="subtitle">Secure upload · deterministic validation · human review · traceable reporting</text>
+  <text x="60" y="88" class="subtitle">Secure upload · Deterministic Validation · Human Review · Traceable Reporting</text>
   <text x="1535" y="67" text-anchor="end" class="subtitle">AWS + Terraform</text>
 
   <text x="60" y="153" class="section">STAFF EXPERIENCE</text>
