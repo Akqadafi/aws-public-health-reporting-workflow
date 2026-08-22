@@ -1,0 +1,3 @@
+submission_id,submitted_at,participant_id,program_code,service_date,age_group,zip_code,pregnancy_status,race_category,ethnicity_category,preferred_language,education_level,referral_source,interest_areas
+SUB-HE-101,2026-04-03,SYN-HE-101,HEALTH_EDUCATION,2026-04-02,18-24,8500,PREGNANT,BLACK,HISPANIC_OR_LATINO,ENGLISH,HIGH_SCHOOL,COMMUNITY_EVENT,NUTRITION
+SUB-HE-102,not-a-date,SYN-HE-101,UNKNOWN_PROGRAM,04/44/2026,unknown,ABCDE,MAYBE,UNLISTED,UNKNOWN,KLINGON,UNKNOWN,SOCIAL_MEDIA,UNLISTED_INTEREST

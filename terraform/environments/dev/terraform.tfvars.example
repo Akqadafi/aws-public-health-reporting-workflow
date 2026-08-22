@@ -1,9 +1,8 @@
-aws_region       = "us-west-2"
-project_name     = "health-reporting-demo"
-environment      = "portfolio"
-enable_frontend  = true
+aws_region        = "us-west-2"
+project_name      = "health-reporting-demo"
+enable_frontend   = true
 enable_full_stack = false
-protect_data     = true
+protect_data      = false
 
 # Optional notification; AWS sends a confirmation email before alerts start.
 notification_email = ""

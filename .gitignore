@@ -28,3 +28,4 @@ local-data/curated/*
 local-data/archive/*
 local-data/workflow.db
 !local-data/**/.gitkeep
+portfolio-output/

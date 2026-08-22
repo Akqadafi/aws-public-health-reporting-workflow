@@ -1,0 +1,3 @@
+submission_id,report_month,site_code,referrals,intakes,individual_appointments,couples_appointments,group_sessions,telehealth_visits,cancellations,unduplicated_people_served
+SUB-BH-101,April,SITE_ALPHA,ten,8,31,4,-1,12,3,24
+SUB-BH-101,2026-04,SITE_ALPHA,10,8,31,4,5,12,3,24
