@@ -1,132 +1,166 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description">
   <title id="title">AWS public health reporting workflow architecture</title>
-  <desc id="description">Staff use a CloudFront React portal and Fargate API to upload directly to S3. EventBridge starts Step Functions, which invokes validation and transformation Lambda functions. Failed files enter quarantine; passing files become curated reports. RDS tracks workflow metadata. Security, monitoring, audit, and recovery services surround the workflow.</desc>
+  <desc id="description">Staff request a presigned URL through the React portal and FastAPI, then the browser uploads directly to the incoming prefix of a versioned S3 data bucket. EventBridge starts a Step Functions workflow that coordinates validation, quarantine, transformation, and curated output. A manager reviews the aggregate through the portal before it is archived. PostgreSQL stores workflow metadata, while versioning and backups support recovery.</desc>
   <defs>
     <linearGradient id="header" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#102a43"/>
       <stop offset="1" stop-color="#174f3a"/>
     </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#102a43" flood-opacity="0.12"/>
+      <feDropShadow dx="0" dy="7" stdDeviation="9" flood-color="#102a43" flood-opacity="0.11"/>
     </filter>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#35627a"/>
+      <path d="M0 0L10 5L0 10Z" fill="#35627a"/>
     </marker>
     <style>
       .title { font: 700 38px Inter,Segoe UI,sans-serif; fill: #fff; }
       .subtitle { font: 400 18px Inter,Segoe UI,sans-serif; fill: #dbeafe; }
-      .section { font: 700 18px Inter,Segoe UI,sans-serif; fill: #315744; letter-spacing: 1.5px; }
-      .node-title { font: 700 20px Inter,Segoe UI,sans-serif; fill: #102a43; }
-      .node-copy { font: 400 15px Inter,Segoe UI,sans-serif; fill: #526371; }
-      .small { font: 600 13px Inter,Segoe UI,sans-serif; fill: #526371; }
-      .card { fill: #fff; stroke: #cbd8df; stroke-width: 2; rx: 16; filter: url(#shadow); }
-      .aws { fill: #eff6ff; stroke: #4285b4; stroke-width: 2; rx: 16; }
-      .pass { fill: #e8f5ec; stroke: #2b7958; stroke-width: 2; rx: 16; }
-      .fail { fill: #fff3e5; stroke: #c27822; stroke-width: 2; rx: 16; }
-      .control { fill: #f4f1ff; stroke: #7456a8; stroke-width: 1.5; rx: 12; }
+      .section { font: 700 17px Inter,Segoe UI,sans-serif; fill: #315744; letter-spacing: 1.4px; }
+      .section-note { font: 600 12px Inter,Segoe UI,sans-serif; fill: #647785; letter-spacing: .5px; }
+      .node-title { font: 700 19px Inter,Segoe UI,sans-serif; fill: #102a43; }
+      .node-copy { font: 400 14px Inter,Segoe UI,sans-serif; fill: #526371; }
+      .small { font: 600 12px Inter,Segoe UI,sans-serif; fill: #526371; }
+      .arrow-label { font: 700 11px Inter,Segoe UI,sans-serif; fill: #35627a; letter-spacing: .3px; }
+      .card { fill: #fff; stroke: #cbd8df; stroke-width: 2; rx: 15; filter: url(#shadow); }
+      .aws { fill: #eff6ff; stroke: #4285b4; stroke-width: 2; rx: 15; }
+      .pass { fill: #e8f5ec; stroke: #2b7958; stroke-width: 2; rx: 15; }
+      .fail { fill: #fff3e5; stroke: #c27822; stroke-width: 2; rx: 15; }
+      .control { fill: #f4f1ff; stroke: #7456a8; stroke-width: 1.7; rx: 13; }
+      .recovery { fill: #eef8f6; stroke: #24766b; stroke-width: 1.7; rx: 13; }
+      .orchestration { fill: #f8fbff; stroke: #9bbfd8; stroke-width: 2; stroke-dasharray: 8 7; rx: 18; }
+      .mini { fill: #f5f9ff; stroke: #4285b4; stroke-width: 1.5; rx: 10; }
       .line { fill: none; stroke: #35627a; stroke-width: 3; marker-end: url(#arrow); }
-      .dash { fill: none; stroke: #78909c; stroke-width: 2; stroke-dasharray: 8 8; }
+      .dash-arrow { fill: none; stroke: #718995; stroke-width: 2; stroke-dasharray: 7 7; marker-end: url(#arrow); }
+      .dash { fill: none; stroke: #899da7; stroke-width: 2; stroke-dasharray: 7 7; }
     </style>
   </defs>
 
   <rect width="1600" height="900" fill="#f4f7f5"/>
   <rect width="1600" height="118" fill="url(#header)"/>
-  <text x="70" y="55" class="title">Public Health Reporting Workflow</text>
-  <text x="70" y="88" class="subtitle">Secure upload · deterministic validation · human review · traceable reporting</text>
-  <text x="1485" y="67" text-anchor="end" class="subtitle">AWS + Terraform</text>
+  <text x="60" y="55" class="title">Public Health Reporting Workflow</text>
+  <text x="60" y="88" class="subtitle">Secure upload · Deterministic Validation · Human Review · Traceable Reporting</text>
+  <text x="1535" y="67" text-anchor="end" class="subtitle">AWS + Terraform</text>
 
-  <text x="70" y="160" class="section">STAFF EXPERIENCE</text>
-  <rect x="70" y="183" width="220" height="125" class="card"/>
-  <circle cx="112" cy="228" r="20" fill="#174f3a"/>
-  <path d="M88 279c5-27 43-27 48 0" fill="#174f3a"/>
-  <text x="153" y="225" class="node-title">Staff</text>
-  <text x="153" y="250" class="node-copy">Analyst / manager</text>
-  <text x="153" y="273" class="node-copy">OIDC role claims</text>
+  <text x="60" y="153" class="section">STAFF EXPERIENCE</text>
 
-  <rect x="350" y="183" width="245" height="125" class="aws"/>
-  <text x="472" y="222" text-anchor="middle" class="node-title">React portal</text>
-  <text x="472" y="250" text-anchor="middle" class="node-copy">S3 + CloudFront OAC</text>
-  <text x="472" y="276" text-anchor="middle" class="small">Private static origin</text>
+  <rect x="60" y="174" width="180" height="115" class="card"/>
+  <circle cx="98" cy="215" r="18" fill="#174f3a"/>
+  <path d="M76 264c5-25 39-25 44 0" fill="#174f3a"/>
+  <text x="180" y="213" text-anchor="middle" class="node-title">Staff</text>
+  <text x="180" y="238" text-anchor="middle" class="node-copy">Analyst</text>
+  <text x="180" y="262" text-anchor="middle" class="small">OIDC role claims</text>
 
-  <rect x="655" y="183" width="245" height="125" class="aws"/>
-  <text x="777" y="222" text-anchor="middle" class="node-title">FastAPI control plane</text>
-  <text x="777" y="250" text-anchor="middle" class="node-copy">ALB + ECS Fargate</text>
-  <text x="777" y="276" text-anchor="middle" class="small">Presigned upload URL</text>
+  <rect x="300" y="174" width="240" height="115" class="aws"/>
+  <text x="420" y="211" text-anchor="middle" class="node-title">React portal</text>
+  <text x="420" y="238" text-anchor="middle" class="node-copy">S3 + CloudFront OAC</text>
+  <text x="420" y="263" text-anchor="middle" class="small">Private static origin</text>
 
-  <path d="M290 245 H342" class="line"/>
-  <path d="M595 245 H647" class="line"/>
+  <rect x="660" y="174" width="250" height="115" class="aws"/>
+  <text x="785" y="211" text-anchor="middle" class="node-title">FastAPI control plane</text>
+  <text x="785" y="238" text-anchor="middle" class="node-copy">ALB + ECS Fargate (opt-in)</text>
+  <text x="785" y="263" text-anchor="middle" class="small">Authorizes key + URL lifetime</text>
 
-  <text x="70" y="365" class="section">EVENT-DRIVEN DATA PLANE</text>
-  <rect x="70" y="390" width="215" height="125" class="aws"/>
-  <text x="177" y="430" text-anchor="middle" class="node-title">S3 incoming</text>
-  <text x="177" y="458" text-anchor="middle" class="node-copy">Versioned + KMS</text>
-  <text x="177" y="484" text-anchor="middle" class="small">Browser uploads directly</text>
+  <path d="M240 231H292" class="line"/>
+  <path d="M540 215H652" class="line"/>
+  <text x="596" y="199" text-anchor="middle" class="arrow-label">REQUEST URL</text>
+  <path d="M660 257H548" class="dash-arrow"/>
+  <text x="604" y="280" text-anchor="middle" class="arrow-label">URL ONLY</text>
 
-  <rect x="335" y="390" width="195" height="125" class="aws"/>
-  <text x="432" y="430" text-anchor="middle" class="node-title">EventBridge</text>
-  <text x="432" y="458" text-anchor="middle" class="node-copy">Object Created</text>
-  <text x="432" y="484" text-anchor="middle" class="small">incoming/ prefix</text>
+  <text x="262" y="337" text-anchor="middle" class="section">EVENT-DRIVEN DATA PLANE</text>
+  <text x="1535" y="337" text-anchor="end" class="section-note">ONE VERSIONED, CUSTOMER-KMS-ENCRYPTED S3 DATA BUCKET</text>
 
-  <rect x="580" y="390" width="215" height="125" class="aws"/>
-  <text x="687" y="430" text-anchor="middle" class="node-title">Step Functions</text>
-  <text x="687" y="458" text-anchor="middle" class="node-copy">Retries + Choice state</text>
-  <text x="687" y="484" text-anchor="middle" class="small">Execution payloads not logged</text>
+  <path d="M420 289V355H155V392" class="line"/>
+  <text x="258" y="317" text-anchor="middle" class="arrow-label">DIRECT HTTPS PUT · FILE BYTES BYPASS API</text>
 
-  <rect x="845" y="390" width="220" height="125" class="aws"/>
-  <text x="955" y="430" text-anchor="middle" class="node-title">Validation Lambda</text>
-  <text x="955" y="458" text-anchor="middle" class="node-copy">Schema + business rules</text>
-  <text x="955" y="484" text-anchor="middle" class="small">Safe corrections only</text>
+  <rect x="60" y="400" width="190" height="120" class="aws"/>
+  <text x="155" y="438" text-anchor="middle" class="node-title">incoming/</text>
+  <text x="155" y="466" text-anchor="middle" class="node-copy">S3 data-bucket prefix</text>
+  <text x="155" y="493" text-anchor="middle" class="small">Original object + version ID</text>
 
-  <path d="M285 452 H327" class="line"/>
-  <path d="M530 452 H572" class="line"/>
-  <path d="M795 452 H837" class="line"/>
-  <path d="M778 308 V346 H177 V382" class="line"/>
+  <rect x="290" y="400" width="175" height="120" class="aws"/>
+  <text x="377" y="438" text-anchor="middle" class="node-title">EventBridge</text>
+  <text x="377" y="466" text-anchor="middle" class="node-copy">Object Created</text>
+  <text x="377" y="493" text-anchor="middle" class="small">Starts one execution</text>
 
-  <rect x="1120" y="345" width="210" height="125" class="fail"/>
-  <text x="1225" y="385" text-anchor="middle" class="node-title">S3 quarantine</text>
-  <text x="1225" y="413" text-anchor="middle" class="node-copy">Original + error report</text>
-  <text x="1225" y="439" text-anchor="middle" class="small">Human correction required</text>
-  <text x="1093" y="393" class="small" fill="#9a5a13">FAIL</text>
-  <path d="M1065 420 H1112" class="line"/>
+  <path d="M250 460H282" class="line"/>
 
-  <rect x="1120" y="505" width="210" height="125" class="pass"/>
-  <text x="1225" y="545" text-anchor="middle" class="node-title">S3 validated</text>
-  <text x="1225" y="573" text-anchor="middle" class="node-copy">Normalized records</text>
-  <text x="1225" y="599" text-anchor="middle" class="small">Traceable validation report</text>
-  <text x="1093" y="553" class="small" fill="#2b7958">PASS</text>
-  <path d="M1065 482 C1090 482 1085 567 1112 567" class="line"/>
+  <rect x="500" y="360" width="1040" height="290" class="orchestration"/>
+  <text x="525" y="391" class="section">STEP FUNCTIONS ORCHESTRATION</text>
+  <text x="1515" y="391" text-anchor="end" class="section-note">RETRIES · CHOICE STATE · EXECUTION PAYLOADS NOT LOGGED</text>
+  <path d="M465 460H527" class="line"/>
 
-  <rect x="1380" y="505" width="160" height="125" class="pass"/>
-  <text x="1460" y="545" text-anchor="middle" class="node-title">Transform</text>
-  <text x="1460" y="573" text-anchor="middle" class="node-copy">Lambda</text>
-  <text x="1460" y="599" text-anchor="middle" class="small">De-identify</text>
-  <path d="M1330 567 H1372" class="line"/>
+  <rect x="535" y="415" width="210" height="120" class="aws"/>
+  <text x="640" y="452" text-anchor="middle" class="node-title">Validation Lambda</text>
+  <text x="640" y="480" text-anchor="middle" class="node-copy">Schema + business rules</text>
+  <text x="640" y="507" text-anchor="middle" class="small">Safe corrections only</text>
 
-  <text x="70" y="686" class="section">CONTROL, APPROVAL, AND RECOVERY</text>
-  <rect x="70" y="712" width="235" height="115" class="control"/>
-  <text x="187" y="751" text-anchor="middle" class="node-title">PostgreSQL / RDS</text>
-  <text x="187" y="780" text-anchor="middle" class="node-copy">Cycle and submission state</text>
-  <text x="187" y="805" text-anchor="middle" class="small">Private database subnets</text>
+  <path d="M745 475H772" class="line"/>
+  <polygon points="810,438 847,475 810,512 773,475" fill="#fff" stroke="#4285b4" stroke-width="2"/>
+  <text x="810" y="471" text-anchor="middle" class="small">VALID?</text>
+  <text x="810" y="487" text-anchor="middle" class="small">CHOICE</text>
 
-  <rect x="355" y="712" width="220" height="115" class="control"/>
-  <text x="465" y="751" text-anchor="middle" class="node-title">Manager approval</text>
-  <text x="465" y="780" text-anchor="middle" class="node-copy">Human decision point</text>
-  <text x="465" y="805" text-anchor="middle" class="small">Approval audit event</text>
+  <rect x="885" y="405" width="195" height="110" class="fail"/>
+  <text x="982" y="440" text-anchor="middle" class="node-title">quarantine/</text>
+  <text x="982" y="467" text-anchor="middle" class="node-copy">Original + error report</text>
+  <text x="982" y="492" text-anchor="middle" class="small">SNS · human correction</text>
+  <path d="M847 459H877" class="line"/>
+  <text x="861" y="445" text-anchor="middle" class="arrow-label" fill="#9a5a13">FAIL</text>
 
-  <rect x="625" y="712" width="220" height="115" class="pass"/>
-  <text x="735" y="751" text-anchor="middle" class="node-title">S3 archive</text>
-  <text x="735" y="780" text-anchor="middle" class="node-copy">Final report + manifest</text>
-  <text x="735" y="805" text-anchor="middle" class="small">Versioning + lifecycle</text>
+  <rect x="885" y="530" width="195" height="95" class="pass"/>
+  <text x="982" y="564" text-anchor="middle" class="node-title">validated/</text>
+  <text x="982" y="590" text-anchor="middle" class="node-copy">Normalized records</text>
+  <text x="982" y="612" text-anchor="middle" class="small">Validation report</text>
+  <path d="M810 512V577H877" class="line"/>
+  <text x="861" y="563" text-anchor="middle" class="arrow-label" fill="#2b7958">PASS</text>
 
-  <rect x="905" y="700" width="625" height="139" fill="#fff" stroke="#cbd8df" stroke-width="2" rx="16"/>
-  <text x="935" y="736" class="node-title">Cross-cutting controls</text>
-  <rect x="935" y="758" width="130" height="48" class="aws"/><text x="1000" y="788" text-anchor="middle" class="small">IAM / OIDC</text>
-  <rect x="1080" y="758" width="130" height="48" class="aws"/><text x="1145" y="788" text-anchor="middle" class="small">KMS / Secrets</text>
-  <rect x="1225" y="758" width="130" height="48" class="aws"/><text x="1290" y="788" text-anchor="middle" class="small">CloudWatch</text>
-  <rect x="1370" y="758" width="130" height="48" class="aws"/><text x="1435" y="788" text-anchor="middle" class="small">CloudTrail</text>
+  <rect x="1120" y="530" width="170" height="95" class="pass"/>
+  <text x="1205" y="564" text-anchor="middle" class="node-title">Transform</text>
+  <text x="1205" y="590" text-anchor="middle" class="node-copy">Lambda</text>
+  <text x="1205" y="612" text-anchor="middle" class="small">De-identify + aggregate</text>
+  <path d="M1080 577H1112" class="line"/>
 
-  <path d="M1460 630 V659 H465 V704" class="line"/>
-  <path d="M575 769 H617" class="line"/>
-  <path d="M305 769 H347" class="line"/>
-  <path d="M777 308 V690 H187 V704" class="dash"/>
+  <rect x="1330" y="530" width="180" height="95" class="pass"/>
+  <text x="1420" y="564" text-anchor="middle" class="node-title">curated/</text>
+  <text x="1420" y="590" text-anchor="middle" class="node-copy">Review-ready aggregate</text>
+  <text x="1420" y="612" text-anchor="middle" class="small">Lineage manifest</text>
+  <path d="M1290 577H1322" class="line"/>
+
+  <text x="60" y="690" class="section">CONTROL, APPROVAL, AND RECOVERY</text>
+
+  <rect x="60" y="710" width="430" height="140" fill="#fff" stroke="#cbd8df" stroke-width="2" rx="15"/>
+  <text x="275" y="742" text-anchor="middle" class="node-title">Cross-cutting controls</text>
+  <rect x="80" y="760" width="105" height="36" class="mini"/><text x="132" y="783" text-anchor="middle" class="small">AWS WAF</text>
+  <rect x="195" y="760" width="120" height="36" class="mini"/><text x="255" y="783" text-anchor="middle" class="small">IAM / OIDC</text>
+  <rect x="325" y="760" width="145" height="36" class="mini"/><text x="397" y="783" text-anchor="middle" class="small">KMS / Secrets</text>
+  <rect x="80" y="806" width="145" height="36" class="mini"/><text x="152" y="829" text-anchor="middle" class="small">CloudWatch / SNS</text>
+  <rect x="235" y="806" width="110" height="36" class="mini"/><text x="290" y="829" text-anchor="middle" class="small">CloudTrail</text>
+  <rect x="355" y="806" width="115" height="36" class="mini"/><text x="412" y="829" text-anchor="middle" class="small">VPC / SGs</text>
+
+  <rect x="540" y="720" width="220" height="120" class="control"/>
+  <text x="650" y="758" text-anchor="middle" class="node-title">PostgreSQL / RDS</text>
+  <text x="650" y="786" text-anchor="middle" class="node-copy">Operational state store</text>
+  <text x="650" y="812" text-anchor="middle" class="small">API + workflow metadata</text>
+
+  <rect x="810" y="720" width="220" height="120" class="control"/>
+  <text x="920" y="758" text-anchor="middle" class="node-title">Manager approval</text>
+  <text x="920" y="786" text-anchor="middle" class="node-copy">Review through portal/API</text>
+  <text x="920" y="812" text-anchor="middle" class="small">Decision recorded in RDS</text>
+
+  <rect x="1080" y="720" width="200" height="120" class="pass"/>
+  <text x="1180" y="758" text-anchor="middle" class="node-title">archive/</text>
+  <text x="1180" y="786" text-anchor="middle" class="node-copy">Approved report + manifest</text>
+  <text x="1180" y="812" text-anchor="middle" class="small">Versioning + lifecycle</text>
+
+  <rect x="1330" y="720" width="210" height="120" class="recovery"/>
+  <text x="1435" y="758" text-anchor="middle" class="node-title">Recovery</text>
+  <text x="1435" y="786" text-anchor="middle" class="node-copy">S3 versions + RDS backups</text>
+  <text x="1435" y="812" text-anchor="middle" class="small">Restore · reconcile · replay</text>
+
+  <path d="M1420 625V675H920V712" class="line"/>
+  <text x="1160" y="668" text-anchor="middle" class="arrow-label">REVIEW-READY AGGREGATE</text>
+  <path d="M1030 780H1072" class="line"/>
+
+  <path d="M650 650V720" class="dash"/>
+  <text x="658" y="684" class="small">state updates</text>
+  <path d="M810 800H760" class="dash"/>
 </svg>
