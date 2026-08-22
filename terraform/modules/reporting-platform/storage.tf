@@ -62,7 +62,7 @@ resource "aws_kms_alias" "data" {
 
 resource "aws_s3_bucket" "data" {
   bucket        = "${local.bucket_base}-data"
-  force_destroy = false
+  force_destroy = !var.protect_data
 }
 
 resource "aws_s3_bucket_public_access_block" "data" {

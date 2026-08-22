@@ -1,8 +1,9 @@
-# Beginner guide: run the project on your computer
+# Complete beginner guide: run locally and deploy with Terraform
 
-This guide starts at the very beginning. You do not need an AWS account to follow the main steps.
-You will use invented CSV records, run the reporting workflow on your own computer, and see one file
-pass validation while another file is safely quarantined.
+This guide starts at the very beginning. Part 1 runs entirely on your computer and does not need an
+AWS account. Part 2 creates the portfolio environment in a real AWS account with Terraform and then
+uses the AWS command-line interface (CLI) to prove that the deployed workflow works. Always use
+invented records, never real health or participant data.
 
 ## What you are about to do
 
@@ -373,14 +374,558 @@ one another.
 The visual portal can run locally, but direct upload requires deployed AWS resources and configuration.
 Use the Python workflow for the no-AWS demonstration.
 
-## About the AWS deployment
+## Part 2: deploy the dev environment to AWS with Terraform
 
-Deploying the cloud version is an advanced step. It can create resources that cost money, including
-NAT Gateway, load balancer, Fargate, RDS, CloudTrail data events, KMS, and storage. It also requires
-an AWS account, approved credentials, remote Terraform state, identity-provider settings, a container
-image, and deliberate security review.
+Stop here unless Part 1 works. The AWS steps create real cloud resources and can cost money. The
+default dev configuration leaves the expensive VPC, NAT Gateway, load balancer, Fargate, and RDS
+control plane turned off. It still creates services such as S3, Lambda, Step Functions, EventBridge,
+CloudFront, WAF, CloudTrail, CloudWatch, SNS, and KMS. Check current prices and use a dedicated
+non-production AWS account with a budget alarm.
 
-Start with this local guide. When you are ready for AWS, follow the main
-[deployment instructions](../README.md#deployment) with a dedicated non-production account and only
-synthetic data. Never run `terraform apply` just to see what happens; read and understand the plan
-first.
+The instructions below are written for Windows PowerShell. A macOS/Linux command table appears near
+the end of the guide.
+
+### What Terraform does
+
+Terraform reads the `.tf` files and compares them with your AWS account. Its main commands are:
+
+- `terraform init`: prepares the folder and downloads providers.
+- `terraform validate`: checks whether the Terraform code makes sense.
+- `terraform plan`: shows what Terraform wants to change without making the changes.
+- `terraform apply`: makes the reviewed changes in AWS.
+- `terraform destroy`: removes resources tracked in the Terraform state.
+
+HashiCorp's official [Terraform CLI documentation](https://developer.hashicorp.com/terraform/cli/commands)
+describes each command. Never skip the plan review.
+
+### AWS Step 1: install the additional tools
+
+Install these tools before continuing:
+
+1. [Terraform](https://developer.hashicorp.com/terraform/install), version 1.10 or newer but below 2.0.
+2. [AWS CLI version 2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
+3. [Node.js 22](https://nodejs.org/en/download), which includes npm.
+
+Open a new PowerShell window in the repository root and check them:
+
+```powershell
+terraform version
+aws --version
+node --version
+npm.cmd --version
+```
+
+Every command should print a version number. Do not continue if one says it is not recognized.
+
+### AWS Step 2: sign in safely
+
+Ask the AWS account administrator for an approved non-production role. Prefer short-lived AWS IAM
+Identity Center credentials instead of permanent access keys. The administrator must grant the role
+permission to create the resources shown in the Terraform plan and to use the separate state bucket.
+
+Create a profile. This example names it `health-demo`:
+
+```powershell
+aws configure sso --profile health-demo
+aws sso login --profile health-demo
+```
+
+Tell the AWS CLI and Terraform to use that profile and the repo's example Region:
+
+```powershell
+$Profile = "health-demo"
+$Region = "us-west-2"
+$env:AWS_PROFILE = $Profile
+$env:AWS_REGION = $Region
+```
+
+Confirm the identity before creating anything:
+
+```powershell
+aws sts get-caller-identity
+```
+
+Read the returned account number and role ARN. Stop if they are not the intended sandbox account and
+role. AWS documents this check in the
+[get-caller-identity reference](https://docs.aws.amazon.com/cli/latest/reference/sts/get-caller-identity.html).
+
+These PowerShell variables last only until you close the window. Set them again in a new window.
+
+### AWS Step 3: create the remote Terraform state bucket once
+
+Terraform state is its memory of what it created. This project keeps that state in a separate private
+S3 bucket. The bucket must exist before Terraform can manage the application.
+
+Create a globally unique, lowercase name using your AWS account number:
+
+```powershell
+$AccountId = aws sts get-caller-identity --query Account --output text
+$StateBucket = "health-reporting-tfstate-$AccountId-$Region"
+$StateBucket
+```
+
+The last line prints the exact bucket name. Create and secure it:
+
+```powershell
+aws s3api create-bucket `
+  --bucket $StateBucket `
+  --region $Region `
+  --create-bucket-configuration LocationConstraint=$Region
+
+aws s3api put-bucket-versioning `
+  --bucket $StateBucket `
+  --versioning-configuration Status=Enabled
+
+aws s3api put-bucket-encryption `
+  --bucket $StateBucket `
+  --server-side-encryption-configuration 'Rules=[{ApplyServerSideEncryptionByDefault={SSEAlgorithm=AES256}}]'
+
+aws s3api put-public-access-block `
+  --bucket $StateBucket `
+  --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+```
+
+If `create-bucket` says the bucket already exists and belongs to you, do not create another one. Keep
+using that same state bucket. If it belongs to somebody else, choose another unique name.
+
+Confirm all three protections:
+
+```powershell
+aws s3api get-bucket-versioning --bucket $StateBucket
+aws s3api get-bucket-encryption --bucket $StateBucket
+aws s3api get-public-access-block --bucket $StateBucket
+```
+
+Look for `Enabled`, `AES256`, and four `true` values. HashiCorp recommends Versioning for state
+recovery and supports S3 lockfiles through `use_lockfile = true`; see the official
+[S3 backend documentation](https://developer.hashicorp.com/terraform/language/backend/s3).
+
+The `us-east-1` Region is a special case: its `create-bucket` command must omit
+`--create-bucket-configuration`. This guide uses `us-west-2`, so the displayed command is correct as
+written.
+
+### AWS Step 4: make private configuration copies
+
+Run these commands from the repository root:
+
+```powershell
+Copy-Item .\terraform\environments\dev\backend.hcl.example .\terraform\environments\dev\backend.hcl
+Copy-Item .\terraform\environments\dev\terraform.tfvars.example .\terraform\environments\dev\terraform.tfvars
+notepad .\terraform\environments\dev\backend.hcl
+```
+
+In `backend.hcl`, replace `replace-with-terraform-state-bucket` with the value printed by
+`$StateBucket`. Keep the key, Region, encryption, and lockfile lines. Save and close Notepad.
+
+Open the variable file:
+
+```powershell
+notepad .\terraform\environments\dev\terraform.tfvars
+```
+
+For the least expensive working demo, keep these important values:
+
+```hcl
+aws_region        = "us-west-2"
+enable_frontend   = true
+enable_full_stack = false
+protect_data      = false
+```
+
+`protect_data = false` allows the disposable dev buckets to be removed during teardown. Production
+uses `true`. The full-stack-only values may remain empty because `enable_full_stack` is false.
+
+Both private files are ignored by Git. Confirm that they are not being offered for commit:
+
+```powershell
+git status --short
+```
+
+You should not see `backend.hcl` or `terraform.tfvars` in the output.
+
+### AWS Step 5: run every local check
+
+This command runs the Python tests, repository tests, frontend build, Terraform formatting, and
+Terraform validation for dev and prod:
+
+```powershell
+.\scripts\validate.ps1
+```
+
+The successful ending contains Python `OK`, a successful Vite build, and `Success! The configuration
+is valid.` for both Terraform environments.
+
+You can also run only Terraform's safe static checks:
+
+```powershell
+terraform -chdir=terraform/environments/dev init -backend=false -input=false
+terraform -chdir=terraform/environments/dev fmt -check
+terraform -chdir=terraform/environments/dev validate
+```
+
+`validate` checks the code but does not prove that your AWS role has enough permission. The next step
+does that more completely.
+
+### AWS Step 6: connect the backend and create a plan
+
+Set a short variable so the commands are easier to read:
+
+```powershell
+$TfDir = "terraform/environments/dev"
+```
+
+Connect Terraform to the state bucket:
+
+```powershell
+terraform -chdir=$TfDir init -reconfigure -backend-config=backend.hcl
+```
+
+Create a saved plan:
+
+```powershell
+terraform -chdir=$TfDir fmt -check
+terraform -chdir=$TfDir validate
+terraform -chdir=$TfDir plan -out=dev.tfplan
+```
+
+`plan` reads AWS but does not create the proposed resources. Read the entire output. Check that:
+
+- the account and Region are correct;
+- the plan contains additions, not surprise deletions;
+- `enable_full_stack` is false;
+- names begin with `health-reporting-demo-dev`;
+- no real data, passwords, tokens, or access keys appear.
+
+For an easier second look at the saved plan:
+
+```powershell
+terraform -chdir=$TfDir show dev.tfplan
+```
+
+Stop here and ask the account administrator if the plan is surprising or an authorization error
+appears.
+
+### AWS Step 7: apply the reviewed plan
+
+The repository script repeats the safety checks, saves a fresh plan, and waits for a deliberate
+confirmation:
+
+```powershell
+.\scripts\deploy.ps1 dev
+```
+
+Read the new plan. Only when you are satisfied, type exactly:
+
+```text
+APPLY-dev
+```
+
+Terraform now creates resources. This can take several minutes because CloudFront and WAF are global
+services. Success ends with `Apply complete!` and a list of outputs. Do not close the terminal while
+an apply is running.
+
+### AWS Step 8: collect Terraform's answers
+
+Do not guess resource names. Ask Terraform:
+
+```powershell
+$DataBucket = terraform -chdir=$TfDir output -raw data_bucket
+$AuditBucket = terraform -chdir=$TfDir output -raw audit_bucket
+$FrontendBucket = terraform -chdir=$TfDir output -raw frontend_bucket
+$DistributionId = terraform -chdir=$TfDir output -raw frontend_distribution_id
+$FrontendUrl = terraform -chdir=$TfDir output -raw frontend_url
+$WorkflowArn = terraform -chdir=$TfDir output -raw workflow_arn
+
+terraform -chdir=$TfDir output
+```
+
+The final command displays the non-secret outputs together. Keep these variables in the same
+PowerShell window for the remaining checks.
+
+### AWS Step 9: prove the basic AWS controls exist
+
+Run these read-only checks:
+
+```powershell
+aws s3api head-bucket --bucket $DataBucket
+aws s3api get-bucket-versioning --bucket $DataBucket
+aws s3api get-bucket-encryption --bucket $DataBucket
+aws s3api get-public-access-block --bucket $DataBucket
+aws stepfunctions describe-state-machine --state-machine-arn $WorkflowArn --query status --output text
+```
+
+Expected results:
+
+- `head-bucket` prints nothing and exits without a red error;
+- bucket Versioning says `Enabled`;
+- encryption says `aws:kms`;
+- all four public-access settings are `true`;
+- the state machine says `ACTIVE`.
+
+If any command fails with `AccessDenied`, the role needs the missing read permission. Do not work
+around that by creating permanent administrator keys.
+
+### AWS Step 10: publish and check the visual portal
+
+Terraform creates a private frontend bucket and CloudFront distribution, but application files must
+still be built and copied into that bucket:
+
+```powershell
+npm.cmd --prefix .\application\frontend ci
+npm.cmd --prefix .\application\frontend run build
+aws s3 sync .\application\frontend\dist "s3://$FrontendBucket"
+aws cloudfront create-invalidation --distribution-id $DistributionId --paths "/*"
+```
+
+Check the web response:
+
+```powershell
+$FrontendUrl
+curl.exe -I $FrontendUrl
+```
+
+Expect an HTTP `200` response. If you briefly see `403`, wait a few minutes for CloudFront and the
+invalidation to finish, then try again.
+
+The page is a visual portfolio demo. Its Upload button will not work in the default deployment because
+the API/Fargate control plane is intentionally off. The next step tests the real event-driven data
+plane directly with the AWS CLI.
+
+### AWS Step 11: run a real end-to-end AWS smoke test
+
+First upload the reporting-period configuration. This does not start the workflow:
+
+```powershell
+aws s3 cp .\sample-data\cycle-2026-Q2.json "s3://$DataBucket/configuration/cycles/2026-Q2.json" --content-type application/json
+```
+
+Remember the most recent execution, if there is one:
+
+```powershell
+$PreviousExecution = aws stepfunctions list-executions `
+  --state-machine-arn $WorkflowArn `
+  --max-results 1 `
+  --query "executions[0].executionArn" `
+  --output text `
+  --no-paginate
+```
+
+Upload the invented valid CSV under the required `incoming/<cycle>/` path:
+
+```powershell
+$RunTag = Get-Date -Format "yyyyMMdd-HHmmss"
+$IncomingKey = "incoming/2026-Q2/cli-$RunTag-valid-participants.csv"
+aws s3 cp .\sample-data\valid-participants.csv "s3://$DataBucket/$IncomingKey" --content-type text/csv
+```
+
+S3 sends an event to EventBridge, which starts Step Functions. The following loop waits for the new
+execution instead of guessing how fast AWS will be:
+
+```powershell
+$ExecutionArn = $null
+for ($Try = 1; $Try -le 24; $Try++) {
+  Start-Sleep -Seconds 5
+  $Candidate = aws stepfunctions list-executions `
+    --state-machine-arn $WorkflowArn `
+    --max-results 1 `
+    --query "executions[0].executionArn" `
+    --output text `
+    --no-paginate
+
+  if ($Candidate -and $Candidate -ne "None" -and $Candidate -ne $PreviousExecution) {
+    $ExecutionArn = $Candidate
+    break
+  }
+}
+
+if (-not $ExecutionArn) {
+  throw "No new Step Functions execution appeared within two minutes."
+}
+```
+
+Wait for that execution to finish:
+
+```powershell
+do {
+  Start-Sleep -Seconds 5
+  $WorkflowStatus = aws stepfunctions describe-execution `
+    --execution-arn $ExecutionArn `
+    --query status `
+    --output text
+  Write-Host "Workflow status: $WorkflowStatus"
+} while ($WorkflowStatus -eq "RUNNING")
+
+if ($WorkflowStatus -ne "SUCCEEDED") {
+  throw "The workflow ended with status $WorkflowStatus."
+}
+```
+
+Display the workflow result and list the encrypted artifacts:
+
+```powershell
+aws stepfunctions describe-execution --execution-arn $ExecutionArn --query output --output text
+aws s3 ls "s3://$DataBucket/validated/2026-Q2/" --recursive
+aws s3 ls "s3://$DataBucket/curated/2026-Q2/" --recursive
+```
+
+The execution output should contain `"status":"AWAITING_APPROVAL"`. The two S3 listings should show
+a normalized CSV, a validation JSON report, and a de-identified summary CSV. That combination proves
+the real S3 → EventBridge → Step Functions → validation Lambda → transform Lambda path worked.
+
+To prove the failure path too, upload the intentionally bad sample:
+
+```powershell
+$BadRunTag = Get-Date -Format "yyyyMMdd-HHmmss"
+aws s3 cp .\sample-data\invalid-participants.csv "s3://$DataBucket/incoming/2026-Q2/cli-$BadRunTag-invalid-participants.csv" --content-type text/csv
+Start-Sleep -Seconds 30
+aws s3 ls "s3://$DataBucket/quarantine/2026-Q2/" --recursive
+```
+
+Seeing the original bad CSV and a `validation-report.json` under `quarantine` means the safety branch
+worked. The Step Functions API is eventually consistent, so a short wait is normal.
+
+### AWS Step 12: confirm Terraform sees no unexplained changes
+
+After the deployment and smoke test, run another plan:
+
+```powershell
+terraform -chdir=$TfDir plan -detailed-exitcode
+$PlanExitCode = $LASTEXITCODE
+
+if ($PlanExitCode -eq 0) {
+  Write-Host "PASS: Terraform found no infrastructure changes."
+} elseif ($PlanExitCode -eq 2) {
+  Write-Warning "Terraform found changes. Read the plan before doing anything."
+} else {
+  throw "Terraform plan failed with exit code $PlanExitCode."
+}
+```
+
+Exit code `0` means the deployed infrastructure matches the Terraform configuration. Exit code `2`
+means Terraform found a difference; it does not automatically mean something is broken, but you must
+read the plan.
+
+### AWS Step 13: destroy the disposable dev environment
+
+Leaving the environment running may continue to cost money. Confirm that the copied
+`terraform.tfvars` still has `protect_data = false`, then run:
+
+```powershell
+.\scripts\cleanup.ps1 dev
+```
+
+Read the destroy plan. If it names only this dev environment, type exactly:
+
+```text
+DESTROY-dev
+```
+
+The dev setting allows Terraform to empty and remove its data, audit, and frontend buckets. This
+permanently deletes the synthetic smoke-test objects. KMS key deletion is scheduled with a 30-day
+waiting period, which is normal AWS behavior.
+
+Confirm Terraform no longer tracks application resources:
+
+```powershell
+terraform -chdir=$TfDir state list
+```
+
+No output means the application state is empty. The separate Terraform state bucket remains because
+Terraform did not create it. Keep it for future deployments. Delete it only when no environment uses
+it and after deliberately emptying all object versions.
+
+## macOS and Linux command differences
+
+The order and safety rules are the same. Use these replacements:
+
+| Windows PowerShell | macOS/Linux shell |
+|---|---|
+| `$env:AWS_PROFILE = "health-demo"` | `export AWS_PROFILE="health-demo"` |
+| `$env:AWS_REGION = "us-west-2"` | `export AWS_REGION="us-west-2"` |
+| `Copy-Item source destination` | `cp source destination` |
+| `notepad file` | open the file in your text editor |
+| `.\scripts\validate.ps1` | `./scripts/validate.sh` |
+| `.\scripts\deploy.ps1 dev` | `./scripts/deploy.sh dev` |
+| `.\scripts\cleanup.ps1 dev` | `./scripts/cleanup.sh dev` |
+| `npm.cmd` | `npm` |
+| `curl.exe -I` | `curl -I` |
+
+The PowerShell waiting loop in AWS Step 11 can be replaced with repeated `aws stepfunctions
+list-executions` and `aws stepfunctions describe-execution` commands. Wait until the newest execution
+says `SUCCEEDED` before checking S3.
+
+## About the optional full stack
+
+`enable_full_stack = true` adds the API control plane: VPC networking, NAT Gateway, HTTPS load
+balancer, two Fargate tasks, PostgreSQL RDS, and Secrets Manager. It costs considerably more and is
+not a one-click demo. Before enabling it, you must provide:
+
+- an immutable container image already pushed to Amazon ECR;
+- an ACM certificate valid for the API hostname;
+- a real enterprise OIDC issuer and audience;
+- approved DNS, IAM, database, backup, and security choices.
+
+Fake placeholder values do not make a safe or working deployment. The CLI smoke test above proves the
+default event-driven portfolio architecture without pretending those organization-owned dependencies
+exist.
+
+## AWS troubleshooting
+
+### `ExpiredToken` or an SSO login error
+
+Sign in again and reset the profile variables:
+
+```powershell
+aws sso login --profile health-demo
+$env:AWS_PROFILE = "health-demo"
+$env:AWS_REGION = "us-west-2"
+```
+
+### Terraform says the backend changed
+
+Make sure `backend.hcl` points to the intended state bucket, then run:
+
+```powershell
+terraform -chdir=terraform/environments/dev init -reconfigure -backend-config=backend.hcl
+```
+
+Do not use `-migrate-state` unless you intentionally want to move existing state.
+
+### `AccessDenied`
+
+Copy the exact denied AWS action and resource ARN for the account administrator. Ask for the smallest
+role change that permits the reviewed deployment. Do not paste credentials into Terraform files.
+
+### The state bucket creation command fails in `us-east-1`
+
+Create it again without the location line:
+
+```powershell
+aws s3api create-bucket --bucket $StateBucket --region us-east-1
+```
+
+### The workflow never starts
+
+Check that the key begins with `incoming/`, the cycle file exists, and EventBridge is enabled:
+
+```powershell
+aws s3 ls "s3://$DataBucket/configuration/cycles/"
+aws s3 ls "s3://$DataBucket/incoming/2026-Q2/"
+aws stepfunctions list-executions --state-machine-arn $WorkflowArn --max-results 5
+```
+
+### The workflow fails
+
+Display its error details and follow the workflow failure runbook:
+
+```powershell
+aws stepfunctions describe-execution --execution-arn $ExecutionArn
+```
+
+See [Workflow failure response](runbooks/workflow-failure.md).
+
+### Destroy says a protected resource cannot be deleted
+
+Stop and check which environment you selected. For disposable dev only, set `protect_data = false`,
+run a normal plan and apply so AWS records the protection change, and then run cleanup. Never weaken
+production protection just to make an error disappear.

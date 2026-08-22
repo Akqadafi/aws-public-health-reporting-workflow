@@ -193,10 +193,10 @@ repository does not present them as already implemented.
 
 ## Deployment
 
-New to Git, Python, or command-line tools? Start with the
-[beginner local-run guide](docs/beginner-local-guide.md). It explains how to download the repository,
-run both sample files without AWS, understand the output, inspect generated files, and solve common
-setup problems.
+New to Git, Python, Terraform, or command-line tools? Start with the
+[complete beginner run guide](docs/beginner-local-guide.md). It explains how to download the
+repository, run both samples locally, deploy the default dev environment, verify the real AWS workflow
+from the CLI, and tear it down safely.
 
 ### Prerequisites
 
@@ -383,7 +383,7 @@ snapshots, and object versions before changing those safeguards.
 
 - [Architecture](docs/architecture.md)
 - [Architecture diagram](docs/architecture-diagram.png)
-- [Beginner local-run guide](docs/beginner-local-guide.md)
+- [Complete beginner local and Terraform run guide](docs/beginner-local-guide.md)
 - [Security and privacy](docs/security-and-privacy.md)
 - [Runbook index](docs/runbook.md)
 - [Portfolio walkthrough](docs/portfolio-walkthrough.md)

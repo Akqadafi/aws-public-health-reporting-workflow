@@ -73,7 +73,7 @@ variable "notification_email" {
 }
 
 variable "protect_data" {
-  description = "Enable deletion protection and a final RDS snapshot in the full stack."
+  description = "Prevent automatic removal of non-empty S3 buckets and enable RDS deletion protection with a final snapshot."
   type        = bool
   default     = true
 }

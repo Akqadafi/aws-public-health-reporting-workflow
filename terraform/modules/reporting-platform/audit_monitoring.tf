@@ -1,5 +1,6 @@
 resource "aws_s3_bucket" "audit" {
-  bucket = "${local.bucket_base}-audit"
+  bucket        = "${local.bucket_base}-audit"
+  force_destroy = !var.protect_data
 }
 
 resource "aws_s3_bucket_public_access_block" "audit" {

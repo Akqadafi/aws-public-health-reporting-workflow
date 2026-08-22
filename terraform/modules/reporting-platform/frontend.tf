@@ -1,6 +1,7 @@
 resource "aws_s3_bucket" "frontend" {
-  count  = var.enable_frontend ? 1 : 0
-  bucket = "${local.bucket_base}-frontend"
+  count         = var.enable_frontend ? 1 : 0
+  bucket        = "${local.bucket_base}-frontend"
+  force_destroy = !var.protect_data
 }
 
 resource "aws_s3_bucket_public_access_block" "frontend" {
