@@ -46,27 +46,27 @@
   <rect x="60" y="174" width="180" height="115" class="card"/>
   <circle cx="98" cy="215" r="18" fill="#174f3a"/>
   <path d="M76 264c5-25 39-25 44 0" fill="#174f3a"/>
-  <text x="130" y="213" class="node-title">Staff</text>
-  <text x="130" y="238" class="node-copy">Analyst / manager</text>
-  <text x="130" y="262" class="small">OIDC role claims</text>
+  <text x="180" y="213" text-anchor="middle" class="node-title">Staff</text>
+  <text x="180" y="238" text-anchor="middle" class="node-copy">Analyst / manager</text>
+  <text x="180" y="262" text-anchor="middle" class="small">OIDC role claims</text>
 
   <rect x="300" y="174" width="240" height="115" class="aws"/>
   <text x="420" y="211" text-anchor="middle" class="node-title">React portal</text>
   <text x="420" y="238" text-anchor="middle" class="node-copy">S3 + CloudFront OAC</text>
   <text x="420" y="263" text-anchor="middle" class="small">Private static origin</text>
 
-  <rect x="620" y="174" width="250" height="115" class="aws"/>
-  <text x="745" y="211" text-anchor="middle" class="node-title">FastAPI control plane</text>
-  <text x="745" y="238" text-anchor="middle" class="node-copy">ALB + ECS Fargate (opt-in)</text>
-  <text x="745" y="263" text-anchor="middle" class="small">Authorizes key + URL lifetime</text>
+  <rect x="660" y="174" width="250" height="115" class="aws"/>
+  <text x="785" y="211" text-anchor="middle" class="node-title">FastAPI control plane</text>
+  <text x="785" y="238" text-anchor="middle" class="node-copy">ALB + ECS Fargate (opt-in)</text>
+  <text x="785" y="263" text-anchor="middle" class="small">Authorizes key + URL lifetime</text>
 
   <path d="M240 231H292" class="line"/>
-  <path d="M540 215H612" class="line"/>
-  <text x="576" y="202" text-anchor="middle" class="arrow-label">REQUEST URL</text>
-  <path d="M620 257H548" class="dash-arrow"/>
-  <text x="584" y="279" text-anchor="middle" class="arrow-label">URL ONLY</text>
+  <path d="M540 215H652" class="line"/>
+  <text x="596" y="199" text-anchor="middle" class="arrow-label">REQUEST URL</text>
+  <path d="M660 257H548" class="dash-arrow"/>
+  <text x="604" y="280" text-anchor="middle" class="arrow-label">URL ONLY</text>
 
-  <text x="60" y="337" class="section">EVENT-DRIVEN DATA PLANE</text>
+  <text x="262" y="337" text-anchor="middle" class="section">EVENT-DRIVEN DATA PLANE</text>
   <text x="1535" y="337" text-anchor="end" class="section-note">ONE VERSIONED, CUSTOMER-KMS-ENCRYPTED S3 DATA BUCKET</text>
 
   <path d="M360 289V355H155V392" class="line"/>
@@ -111,7 +111,7 @@
   <text x="982" y="590" text-anchor="middle" class="node-copy">Normalized records</text>
   <text x="982" y="612" text-anchor="middle" class="small">Validation report</text>
   <path d="M810 512V577H877" class="line"/>
-  <text x="835" y="565" class="arrow-label" fill="#2b7958">PASS</text>
+  <text x="850" y="548" text-anchor="middle" class="arrow-label" fill="#2b7958">PASS</text>
 
   <rect x="1120" y="530" width="170" height="95" class="pass"/>
   <text x="1205" y="564" text-anchor="middle" class="node-title">Transform</text>
@@ -128,13 +128,13 @@
   <text x="60" y="690" class="section">CONTROL, APPROVAL, AND RECOVERY</text>
 
   <rect x="60" y="710" width="430" height="140" fill="#fff" stroke="#cbd8df" stroke-width="2" rx="15"/>
-  <text x="82" y="739" class="node-title">Cross-cutting controls</text>
-  <rect x="80" y="754" width="105" height="36" class="mini"/><text x="132" y="777" text-anchor="middle" class="small">AWS WAF</text>
-  <rect x="195" y="754" width="120" height="36" class="mini"/><text x="255" y="777" text-anchor="middle" class="small">IAM / OIDC</text>
-  <rect x="325" y="754" width="145" height="36" class="mini"/><text x="397" y="777" text-anchor="middle" class="small">KMS / Secrets</text>
-  <rect x="80" y="800" width="145" height="36" class="mini"/><text x="152" y="823" text-anchor="middle" class="small">CloudWatch / SNS</text>
-  <rect x="235" y="800" width="110" height="36" class="mini"/><text x="290" y="823" text-anchor="middle" class="small">CloudTrail</text>
-  <rect x="355" y="800" width="115" height="36" class="mini"/><text x="412" y="823" text-anchor="middle" class="small">VPC / SGs</text>
+  <text x="275" y="742" text-anchor="middle" class="node-title">Cross-cutting controls</text>
+  <rect x="80" y="760" width="105" height="36" class="mini"/><text x="132" y="783" text-anchor="middle" class="small">AWS WAF</text>
+  <rect x="195" y="760" width="120" height="36" class="mini"/><text x="255" y="783" text-anchor="middle" class="small">IAM / OIDC</text>
+  <rect x="325" y="760" width="145" height="36" class="mini"/><text x="397" y="783" text-anchor="middle" class="small">KMS / Secrets</text>
+  <rect x="80" y="806" width="145" height="36" class="mini"/><text x="152" y="829" text-anchor="middle" class="small">CloudWatch / SNS</text>
+  <rect x="235" y="806" width="110" height="36" class="mini"/><text x="290" y="829" text-anchor="middle" class="small">CloudTrail</text>
+  <rect x="355" y="806" width="115" height="36" class="mini"/><text x="412" y="829" text-anchor="middle" class="small">VPC / SGs</text>
 
   <rect x="540" y="720" width="220" height="120" class="control"/>
   <text x="650" y="758" text-anchor="middle" class="node-title">PostgreSQL / RDS</text>
